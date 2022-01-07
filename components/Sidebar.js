@@ -4,27 +4,58 @@ import ChatIcon from "@material-ui/icons/Chat";
 import MoreVertIcon from "@material-ui/icons/MoreVert";
 import SearchIcon from "@material-ui/icons/Search";
 import * as EmailValidator from "email-validator";
+import { signOut } from "firebase/auth";
+import { addDoc, collection, query, where } from "firebase/firestore";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { useCollection } from "react-firebase-hooks/firestore";
+import { auth, db } from "../firebase";
+import Chat from "./Chat";
 
 function Sidebar() {
-
+    const [user] = useAuthState(auth);
+    const chatsCol = collection(db, "chats");
+    const userChatRef = query(
+        chatsCol,
+        where("users", "array-contains", user.email)
+    );
+    const [chatSnapshot] = useCollection(userChatRef);
     const createChat = () => {
-        const input = prompt('Please enter an email address of the user you want to chat with');
+        const input = prompt(
+            "Please enter an email address of the user you want to chat with"
+        );
 
-        if(!input) {
+        if (!input) {
             return;
         }
-        
-        if(EmailValidator.validate(input)) {
-            // we need to add teh chat to the db 'chats' collection
-            
-        }
 
-    }
+        if (
+            EmailValidator.validate(input) &&
+            input !== user.email &&
+            !chatAlreadyExists(input)
+        ) {
+            addDoc(collection(db, "chats"), {
+                users: [user.email, input],
+            }).then((res) => {
+                console.log(res.id);
+            });
+        }
+    };
+
+    const chatAlreadyExists = (recipientEmail) =>
+        !!chatSnapshot?.docs.find(
+            (chat) =>
+                chat.data().users.find((user) => user === recipientEmail)
+                    ?.length > 0
+        );
+
+    const signOutGoogle = () => {
+        signOut(auth);
+    };
 
     return (
         <Container>
             <Header>
-                <UserAvatar />
+                <UserAvatar src={user.photoURL} onClick={signOutGoogle} />
                 <IconsContainer>
                     <IconButton>
                         <ChatIcon />
@@ -36,13 +67,16 @@ function Sidebar() {
             </Header>
 
             <Search>
-                <SearchIcon/>
-                <SearchInput placeholder="Search in Chats"/>
+                <SearchIcon />
+                <SearchInput placeholder="Search in Chats" />
             </Search>
 
-            <SidebarButton onClick={createChat}>
-                Start a new Chat
-            </SidebarButton>
+            <SidebarButton onClick={createChat}>Start a new Chat</SidebarButton>
+
+            {/* list of chats */}
+            {chatSnapshot?.docs.map((chat) => {
+                return <Chat key={chat.id} id={chat.id} users={chat.data().users} />;
+            })}
         </Container>
     );
 }
@@ -65,10 +99,10 @@ const Header = styled.div`
 
 const UserAvatar = styled(Avatar)`
     cursor: pointer;
+    margin: 10px;
 
     :hover {
         opacity: 0.8;
-
     }
 `;
 

@@ -1,5 +1,5 @@
 import { Button } from "@material-ui/core";
-import { signInWithPopup, signInWithRedirect } from "firebase/auth";
+import { signInWithPopup } from "firebase/auth";
 import Head from "next/head";
 import styled from "styled-components"
 import { auth, provider } from "../firebase";
@@ -7,9 +7,7 @@ import { auth, provider } from "../firebase";
 function Login() {
 
     const signIn = () => {
-        // auth.signInWithPopUp(provider).catch(alert);
-        // signInWithPopup(auth, provider).catch(alert);
-        signInWithRedirect(auth, provider).catch(alert);
+        signInWithPopup(auth, provider).catch(alert);
     }
     return (
         <Container>
